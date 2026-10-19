@@ -1,0 +1,34 @@
+# Local development config: real bindings, local (Miniflare) storage, no Cloudflare account needed.
+#   npm run dev            ->  wrangler dev -c wrangler.dev.toml   (http://localhost:8787)
+#   npm run db:migrate:local
+#
+# wrangler.toml is the Deploy Button template and deliberately declares **no** D1 / R2 bindings (see the comment there),
+# so local development uses this file instead.
+name = "resend-mail-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "resend-mail-local"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "resend-mail-local"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "none"
+
+[vars]
+MERGE_SUBREQ_BUDGET = "45"
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[dev]
+port = 8787

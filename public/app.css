@@ -1,0 +1,1460 @@
+:root {
+  --bg: #eef1f6;
+  --panel: #ffffff;
+  --panel-2: #f7f9fc;
+  --border: #e3e7ee;
+  --text: #1f2329;
+  --text-dim: #646b78;
+  --accent: #1a73e8;
+  --accent-weak: #e8f0fe;
+  --accent-strong: #d9e7ff;
+  --danger: #d93025;
+  --hover: #f1f4f9;
+  --ok: #188038;
+  --ok-bg: #e6f4ea;
+  --warn: #b06000;
+  --warn-bg: #fef7e0;
+  --bad-bg: #fce8e6;
+  --sidebar-w: 228px;
+  --list-w: 430px;
+  --topbar-h: 58px;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 14px;
+}
+
+.hidden { display: none !important; }
+
+/*
+ * Viewport height: iOS Safari's 100vh includes the address bar, so the bottom gets hidden and the page still scrolls.
+ * dvh tracks the "currently visible viewport" and follows the address bar as it collapses/expands; older browsers that
+ * don't understand dvh ignore the second line and keep the 100vh fallback (the previous behavior).
+ */
+#app { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
+
+/* ---------- Sidebar ---------- */
+#sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 4px;
+}
+
+.compose-btn {
+  margin: 0 6px 10px;
+  padding: 12px 16px;
+  text-align: center;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.14);
+}
+
+.btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  padding: 7px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.btn:hover { background: var(--hover); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.btn-primary:hover { background: #1765cc; }
+.btn-danger { color: var(--danger); }
+
+#mailbox-wrap { padding: 0 10px 8px; }
+#mailbox-select {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+#folder-nav { flex: 1; overflow-y: auto; }
+.folder-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 0 20px 20px 0;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+  font-size: 14px;
+}
+.folder-item:hover { background: var(--hover); }
+.folder-item.active { background: var(--accent-weak); font-weight: 600; color: var(--accent); }
+.folder-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-badge {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 12px;
+  min-width: 20px;
+  padding: 1px 7px;
+  font-size: 12px;
+  text-align: center;
+}
+
+#sidebar-status { padding: 8px; color: var(--danger); font-size: 12px; }
+
+/* Backend status at the bottom of the sidebar: CF storage usage + inbound queue + Resend send quota; turns color near the limit to hint at upgrading. */
+#backend-status {
+  margin: 8px 6px 0;
+  margin-top: auto; /* Stick to the bottom (above #sidebar-status) */
+  padding: 8px 8px 2px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+#backend-status .bs-title { flex: 0 0 100%; font-weight: 600; color: var(--text); }
+#backend-status .bs-row { white-space: nowrap; }
+#backend-status .bs-row b { font-weight: 600; font-variant-numeric: tabular-nums; }
+#backend-status .bs-note { flex: 0 0 100%; font-size: 10.5px; color: var(--text-dim); }
+#backend-status.warn .bs-title { color: var(--warn); }
+#backend-status.warn .bs-row b { color: var(--warn); }
+#backend-status.danger .bs-title { color: var(--danger); }
+#backend-status.danger .bs-row b { color: var(--danger); }
+#backend-status .bs-attn b { color: var(--warn); }
+
+/* ---------- Workspace ---------- */
+#workspace { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+#topbar {
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+#search-box { flex: 1; max-width: 560px; }
+#search-input {
+  width: 100%;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--panel-2);
+}
+#search-input:focus { outline: 2px solid var(--accent-strong); background: #fff; }
+
+#topbar-actions { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+
+/* Multi-domain: the domain filter sits to the right of the search box (renderDomainBar in app.js); ＋ 域名 opens the
+   add-domain wizard. Each domain is a checkbox chip and several can be ticked at once; none ticked = all domains. */
+#domain-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Takes all the space left before the ＋ 域名 button (no fixed cap: a cap made even two domains overflow into a
+     scrollbar). It can still scroll when many domains genuinely do not fit. */
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  /* Room for the health badge, which sits half outside the chip (overflow-x:auto also clips overflow-y). */
+  padding: 5px 4px 3px;
+}
+/* Divider that replaced the old "全部域名" button: no chip ticked already means "all domains". */
+.domain-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  align-self: stretch;
+  min-height: 18px;
+  background: var(--border);
+  margin: 0 3px;
+}
+/* Multi-select filter: one checkbox chip per domain.
+   A ticked chip uses dark blue *text* on the light blue fill — the old #d9e7ff background with white text was unreadable. */
+.domain-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+.domain-chip:hover { border-color: var(--accent); color: var(--text); }
+.domain-chip input[type="checkbox"] {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.domain-chip.on {
+  background: var(--accent-weak);
+  border-color: var(--accent);
+  color: #0b57d0;
+  font-weight: 600;
+}
+
+/* ---- Per-domain colour: --dom-h / --dom-s are set inline by setDomainHue() from a fixed qualitative palette
+   (DOMAIN_PALETTE in app.js), so every pair of domains stays clearly apart. The same hue/saturation is used on the chip
+   dot, the list rows (mail sent from / received at that domain) and the envelope card.
+   Tints sit at 88–94% lightness so text stays legible; the saturated variant is only used for dots, bars and unread
+   avatars. ---- */
+/* The domain colour **is** the chip background** (no extra dot): a light tint when unticked, the saturated colour when
+   ticked, with white text — the same hue the domain's mail rows use, so the chip and the rows read as the same domain. */
+.domain-chip.has-dom-color {
+  background: hsl(var(--dom-h, 214) var(--dom-s, 62%) 95%);
+  border-color: hsl(var(--dom-h, 214) var(--dom-s, 62%) 80%);
+  color: hsl(var(--dom-h, 214) var(--dom-s, 62%) 30%);
+}
+.domain-chip.has-dom-color:hover { border-color: hsl(var(--dom-h, 214) var(--dom-s, 62%) 48%); }
+.domain-chip.has-dom-color.on {
+  background: hsl(var(--dom-h, 214) var(--dom-s, 62%) 48%);
+  border-color: hsl(var(--dom-h, 214) var(--dom-s, 62%) 42%);
+  color: #fff;
+}
+.domain-chip.has-dom-color.on:hover { background: hsl(var(--dom-h, 214) var(--dom-s, 62%) 44%); }
+.domain-chip.has-dom-color.on input[type="checkbox"] { accent-color: #fff; }
+/* Domain self-check health badge: a tiny status dot at the chip's top-right corner.
+   blue ✓ = the automatic check passed · gray ? = not checked yet · red **!** = a problem (an ✕ read as "close").
+   It lives outside the <label>, so clicking it never ticks the filter checkbox. */
+.domain-chip-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+}
+.domain-status {
+  /* Inline, right after the domain name (user request): the corner is now the new-mail count badge. */
+  position: static;
+  flex: none;
+  min-width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  padding: 0 3px;
+  border-radius: 999px;
+  border: 1px solid var(--panel);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--panel-2);
+  color: var(--text-dim);
+}
+.domain-status.ok { background: var(--accent); border-color: var(--accent); color: #fff; }
+.domain-status.bad { background: var(--danger); border-color: var(--danger); color: #fff; }
+.domain-status.unknown { background: var(--panel-2); border-color: var(--border); color: var(--text-dim); }
+.domain-status:focus-visible { outline: 2px solid var(--accent-weak); outline-offset: 1px; }
+/* New-mail count in the chip's top-right corner (replaces the old health badge position): hidden at 0, "99+" above 99. */
+.domain-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  padding: 0 4px;
+  border-radius: 999px;
+  border: 1px solid var(--panel);
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.domain-count.hidden { display: none; }
+.domain-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Add-domain entry pinned to the top-right of the top bar. */
+.add-domain-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.add-domain-btn:hover { border-color: var(--accent-strong); }
+
+/* Language switch (中文 / English): a compact pill next to the add-domain button. Its label is written by /i18n.js
+   and always shows the language you would switch **to**, so it is never translated itself (data-no-i18n). */
+.lang-btn {
+  flex: 0 0 auto;
+  min-width: 44px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lang-btn:hover { border-color: var(--accent-strong); color: var(--accent); }
+
+/* ---------- Two-column body ---------- */
+#main-split { flex: 1; display: flex; min-height: 0; }
+
+/* ---- Left: list ---- */
+#list-pane {
+  width: var(--list-w);
+  min-width: min(var(--list-w), 34vw);
+  max-width: 46vw;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ---------- List / detail splitter (draggable) ----------
+ * Visually only a 1px vertical line (drawn with a pseudo-element so it takes no layout width), but the hit area is 6px wide for easy grabbing.
+ * `touch-action: none` keeps a touch drag from also scrolling the page.
+ */
+#splitter {
+  flex: 0 0 6px;
+  align-self: stretch;
+  position: relative;
+  z-index: 5;
+  cursor: col-resize;
+  background: transparent;
+  touch-action: none;
+}
+#splitter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--border);
+  transition: width .12s ease, background .12s ease;
+}
+#splitter:hover::before,
+#splitter:focus-visible::before,
+#app.resizing #splitter::before {
+  width: 3px;
+  background: var(--accent-strong);
+}
+#splitter:focus-visible { outline: none; }
+/* While dragging: disable text selection page-wide and keep the col-resize cursor (otherwise it reverts to a text cursor when passing over the detail pane) */
+#app.resizing { user-select: none; cursor: col-resize; }
+
+/* After the user drags the width manually, release the 34vw / 46vw responsive clamps
+ * (JS already clamps to "min 260px, max 70% of viewport"). Only applies in the desktop two-column range. */
+@media (min-width: 981px) {
+  #app.list-w-custom #list-pane { width: var(--list-w); min-width: 0; max-width: none; }
+}
+
+#list-head {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+#list-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; padding-left: 2px; }
+
+#select-all-wrap {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 13px;
+  gap: 6px;
+}
+
+#list-bulk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px;
+}
+#selected-count { color: var(--text-dim); font-size: 13px; }
+#bulk-actions { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+#bulk-actions .btn { padding: 5px 10px; }
+
+#list { flex: 1; overflow-y: auto; }
+
+.list-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 2px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #eef1f6;
+  border-left: 3px solid transparent;
+}
+.list-item:hover { background: var(--hover); }
+.list-item.active {
+  background: var(--accent-weak);
+  border-left-color: var(--accent);
+}
+.list-item.unread .li-sender, .list-item.unread .li-subject { font-weight: 700; }
+.list-item > .li-check { grid-area: 1 / 1 / 3 / 2; align-self: center; }
+.list-item > .li-main { grid-area: 1 / 2 / 2 / 3; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.list-item > .li-sub { grid-area: 2 / 2 / 3 / 3; display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.list-item > .li-time { grid-area: 1 / 3 / 2 / 4; justify-self: end; align-self: center; }
+.list-item > .li-star { grid-area: 2 / 3 / 3 / 4; justify-self: end; }
+
+/* Per-domain tint: mail sent from / received at a domain gets that domain's colour as a tinted background plus a
+   saturated left bar (the border-left already exists as transparent, so the layout does not shift).
+   `.active` (the open message) keeps the accent background so the selection stays unambiguous, while its left bar stays
+   in the domain colour — both signals are visible at once. */
+.list-item.has-dom-color { background: hsl(var(--dom-h, 214) var(--dom-s, 62%) 92%); border-left-color: hsl(var(--dom-h, 214) var(--dom-s, 62%) 48%); }
+.list-item.has-dom-color.unread { background: hsl(var(--dom-h, 214) var(--dom-s, 62%) 86%); }
+.list-item.has-dom-color:hover { background: hsl(var(--dom-h, 214) var(--dom-s, 62%) 89%); }
+.list-item.has-dom-color.active { background: var(--accent-weak); border-left-color: hsl(var(--dom-h, 214) var(--dom-s, 62%) 48%); }
+
+.li-avatar {
+  flex: 0 0 auto;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--accent-weak);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+.list-item.unread .li-avatar { background: var(--accent); color: #fff; }
+/* Inside a domain-tinted row the avatar takes that domain's colour too (unread gets the saturated variant). */
+.list-item.has-dom-color .li-avatar { background: hsl(var(--dom-h, 214) var(--dom-s, 62%) 84%); color: hsl(var(--dom-h, 214) var(--dom-s, 62%) 26%); }
+.list-item.has-dom-color.unread .li-avatar { background: hsl(var(--dom-h, 214) var(--dom-s, 62%) 46%); color: #fff; }
+.li-sender {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.li-status {
+  flex: 0 0 auto;
+  font-size: 11px; padding: 0 6px; border-radius: 8px; white-space: nowrap;
+  background: var(--accent-weak); color: var(--accent);
+}
+.li-status.bounced, .li-status.failed { background: var(--bad-bg); color: var(--danger); }
+.li-status.delivered { background: var(--ok-bg); color: var(--ok); }
+.li-status.delayed, .li-status.queued { background: var(--warn-bg); color: var(--warn); }
+.li-subject {
+  flex: 0 1 55%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.li-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.li-attach { flex: 0 0 auto; color: var(--text-dim); font-size: 11px; }
+.li-thread-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.li-time { color: var(--text-dim); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.li-star { display: flex; }
+.li-star .star-btn {
+  border: none; background: transparent; font-size: 15px; line-height: 1;
+  color: #c0c4cc; cursor: pointer; padding: 2px;
+}
+.li-star .star-btn.starred { color: #fbbc04; }
+
+.empty { text-align: center; color: var(--text-dim); padding: 48px 20px; font-size: 14px; }
+.list-more { text-align: center; padding: 12px; }
+
+/* ---- Right: detail ---- */
+#read-pane { flex: 1; min-width: 0; background: var(--panel-2); overflow-y: auto; }
+
+.read-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-dim);
+}
+.read-placeholder .ph-title { font-size: 17px; font-weight: 600; }
+
+.read-message { padding: 26px 34px 80px; max-width: 900px; margin: 0 auto; }
+
+.mail-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+}
+
+/* Subject area */
+.mail-subject {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 22px 12px;
+}
+.mail-subject h1 { font-size: 22px; font-weight: 700; margin: 0; line-height: 1.3; overflow-wrap: anywhere; }
+.mail-subject .subj-star {
+  border: none; background: none; font-size: 20px; cursor: pointer; color: #c0c4cc; padding: 2px;
+}
+.mail-subject .subj-star.starred { color: #fbbc04; }
+
+/* Envelope (from/to/time) */
+.mail-envelope { padding: 10px 22px 14px; }
+.env-top { display: flex; align-items: center; gap: 12px; }
+/* Per-domain colour on the envelope card: a coloured left bar + tinted avatar, matching the list row of the same mail. */
+.mail-envelope.has-dom-color { box-shadow: inset 4px 0 0 hsl(var(--dom-h, 214) var(--dom-s, 62%) 48%); }
+.mail-envelope.has-dom-color .env-avatar { background: hsl(var(--dom-h, 214) var(--dom-s, 62%) 84%); color: hsl(var(--dom-h, 214) var(--dom-s, 62%) 26%); }
+.env-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--accent-weak);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 17px;
+  flex: 0 0 auto;
+}
+.env-who { flex: 1; min-width: 0; }
+.env-who .who-name { font-size: 15px; font-weight: 600; }
+.env-who .who-email { color: var(--text-dim); font-size: 13px; margin-top: 1px; overflow-wrap: anywhere; }
+.env-date { flex: 0 0 auto; color: var(--text-dim); font-size: 13px; }
+.env-actions { display: flex; gap: 8px; margin-left: 14px; flex: 0 0 auto; }
+
+.env-details { margin-top: 8px; color: var(--text-dim); font-size: 13px; line-height: 1.7; }
+.env-details b { color: var(--text); font-weight: 500; }
+/* "You are CC / You are BCC" chip: only shown on the default-visible summary line (the detail lines are collapsed) */
+.env-role-chip {
+  display: inline-block;
+  padding: 0 7px;
+  border: 1px solid var(--accent-strong);
+  border-radius: 9px;
+  color: var(--accent-strong);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.env-details a.toggle-detail {
+  color: var(--accent); cursor: pointer; border: none; background: none; padding: 0; font-size: 13px;
+  text-decoration: none;
+}
+.env-details a.toggle-detail:hover { text-decoration: underline; }
+.env-detail-lines { display: none; margin-top: 6px; }
+.env-detail-lines.show { display: block; }
+.env-detail-lines div { display: flex; gap: 6px; overflow-wrap: anywhere; }
+.env-detail-lines .k { flex: 0 0 64px; color: var(--text-dim); }
+
+.mail-status-chip {
+  display: inline-block; font-size: 12px; padding: 1px 9px; border-radius: 10px;
+  background: var(--accent-weak); color: var(--accent); margin-left: 8px; vertical-align: 1px;
+}
+.mail-status-chip.bounced, .mail-status-chip.failed { background: var(--bad-bg); color: var(--danger); }
+.mail-status-chip.delivered { background: var(--ok-bg); color: var(--ok); }
+.mail-status-chip.delayed, .mail-status-chip.queued { background: var(--warn-bg); color: var(--warn); }
+
+/* Thread context */
+.rm-thread { padding: 8px 22px; border-bottom: 1px solid var(--border); }
+.rm-thread .t-head { font-size: 12px; color: var(--text-dim); padding: 2px 0 6px; }
+.rm-thread .t-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 6px 8px; cursor: pointer; border: none; background: none;
+  border-radius: 8px; font-size: 13px; color: var(--text); text-align: left;
+}
+.rm-thread .t-item:hover { background: var(--hover); }
+.rm-thread .t-item.current { background: var(--accent-strong); font-weight: 600; }
+/* A thread row's from→to pair (`A → B`) is much longer than a plain sender name, so give it enough width; overflow:hidden
+   zeroes min-width, long addresses are ellipsized, and the full content lives in the title (see threadPanel). */
+.rm-thread .t-sender { flex: 0 1 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-dim); }
+.rm-thread .t-item.current .t-sender { color: var(--text); }
+.rm-thread .t-subject { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rm-thread .t-time { flex: 0 0 120px; text-align: right; color: var(--text-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+.rm-thread .t-tag { flex: 0 0 auto; font-size: 11px; padding: 0 6px; border-radius: 8px; background: var(--accent-weak); color: var(--accent); }
+.rm-thread .t-tag.inbound { background: var(--ok-bg); color: var(--ok); }
+.rm-thread .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: 0 0 auto; }
+
+/* Attachments */
+.attachments { padding: 10px 22px 12px; border-bottom: 1px solid var(--border); }
+.attachments .att-title { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+.att-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.att-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 4px 4px 10px; border: 1px solid var(--border); background: var(--panel-2);
+  border-radius: 10px; text-decoration: none; color: var(--text); font-size: 13px;
+  max-width: 320px;
+}
+.att-chip:hover { border-color: var(--accent); background: var(--accent-weak); }
+/* The filename is a button (click opens the preview), so strip the default button appearance */
+.att-chip .att-open {
+  border: none; background: transparent; padding: 3px 0; margin: 0;
+  font: inherit; color: inherit; cursor: pointer; min-width: 0;
+  display: inline-flex; align-items: center;
+}
+.att-chip .att-open:hover .nm { text-decoration: underline; }
+.att-chip .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att-chip .sz { color: var(--text-dim); flex: 0 0 auto; font-size: 12px; }
+/* Each attachment also gets its own download button: `?dl=1` forces attachment, so PDFs/images don't open in place in the browser */
+.att-chip .att-dl {
+  flex: 0 0 auto; font-size: 12px; line-height: 1;
+  padding: 5px 9px; border-radius: 7px;
+  border: 1px solid var(--border); background: #fff;
+  color: var(--accent); text-decoration: none;
+}
+.att-chip .att-dl:hover { background: var(--accent-weak); border-color: var(--accent); }
+
+/* ---------- Attachment preview overlay ---------- */
+#att-preview {
+  position: fixed; inset: 0; z-index: 70;
+  background: rgba(20,24,32,.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.att-preview-box {
+  background: var(--panel);
+  border-radius: 14px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.3);
+  width: min(1000px, 100%);
+  height: min(760px, 100%);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.att-preview-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+}
+.att-preview-head .nm {
+  font-size: 14px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.att-preview-head .gap { flex: 1; }
+.att-preview-dl { text-decoration: none; }
+.att-preview-body {
+  flex: 1 1 auto; min-height: 0; overflow: auto;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--panel-2);
+}
+.att-preview-body img,
+.att-preview-body video { max-width: 100%; max-height: 100%; display: block; }
+.att-preview-body iframe { width: 100%; height: 100%; border: none; background: #fff; }
+.att-preview-body audio { width: min(560px, 90%); }
+.att-preview-text {
+  align-self: stretch;
+  margin: 0; padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere;
+  background: var(--panel); color: var(--text);
+}
+
+/* Body */
+.mail-body-card { padding: 6px 22px 0; background: transparent; border: none; }
+.mail-body { line-height: 1.65; overflow-wrap: anywhere; }
+.mail-body img { max-width: 100%; height: auto; }
+.mail-body a { color: var(--accent); }
+.mail-body table { max-width: 100%; border-collapse: collapse; }
+.mail-body blockquote { border-left: 3px solid var(--border); margin: 12px 0; padding-left: 12px; color: var(--text-dim); }
+.mail-body pre.text { white-space: pre-wrap; font-family: inherit; margin: 0; font-size: 14px; }
+.quote-divider { border: none; border-top: 1px solid var(--border); margin: 18px 0 0; }
+
+/* ---------- Compose dialog ---------- */
+#modal-mask {
+  position: fixed; inset: 0;
+  background: rgba(20,24,32,.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+}
+#composer {
+  width: min(760px, 94vw);
+  background: var(--panel);
+  border-radius: 14px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.28);
+  /* The bottom padding moved to .composer-actions (see the sticky note there), so the
+     "content scrolled to the bottom" and "buttons pinned to the bottom" states line up exactly with no jump */
+  padding: 20px 26px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* The recipient suggestion dropdown is absolutely positioned under the input, so this needs to be the positioning context */
+  position: relative;
+  /*
+   * ⚠️ The dialog must be capped. The rich-text editor (`.rich-editor`) grows with its content, and in floating mode
+   * even sets `max-height: none` — once the dialog is taller than the viewport the "Send" button is pushed off-screen and
+   * the overlay itself doesn't scroll, so the user can't reach it (a reported bug). Capping + scrolling + sticky buttons is the full fix.
+   * Use dvh rather than vh: the mobile-browser address bar doesn't change vh as it collapses/expands.
+   */
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+#composer-title { font-size: 17px; font-weight: 700; }
+#composer label { font-size: 13px; color: var(--text-dim); }
+.composer-row { display: flex; align-items: center; gap: 12px; }
+.composer-row .grow { flex: 1; }
+.composer-row label { flex: 0 0 auto; }
+#composer input[type="text"], #composer select, #composer textarea {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+  width: 100%;
+}
+#composer input[type="text"]:focus, #composer select:focus, #composer textarea:focus,
+.rich-editor:focus { outline: 2px solid var(--accent-strong); }
+
+/* ⚠️ This was once written as `#composer-body-wrap` (an id selector) while it is a class in index.html
+   — the selector could never match, so this rule (and the layout depending on it) never took effect.
+   Exposed on 2026-10-08 by "the floating window must stretch the body" and changed to a class. */
+.composer-body-wrap { display: flex; flex-direction: column; gap: 6px; }
+#f-body { width: 100%; min-height: 180px; resize: vertical; }
+.rich-editor {
+  width: 100%;
+  min-height: 180px;
+  /* The cap must leave room for the dialog's other fixed rows (to/from/subject/action row…),
+     otherwise "editor grows → whole window exceeds viewport → send button squeezed out". The dialog is already capped;
+     tighten it a bit more here so that in the default (non-floating) state most screens need no scrolling. */
+  max-height: min(45vh, 360px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 11px;
+  font-size: 14px;
+  line-height: 1.6;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+}
+.rich-editor[contenteditable="true"]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.rich-toolbar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.rich-toolbar button {
+  border: 1px solid var(--border); background: #fff; border-radius: 6px;
+  padding: 4px 9px; font-size: 13px; cursor: pointer;
+}
+.rich-toolbar button:hover { background: var(--accent-weak); }
+.rich-toolbar .sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
+
+.att-pick { position: relative; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+.att-pick input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.attach-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 4px; }
+.att-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--border); background: var(--panel-2);
+  border-radius: 16px; padding: 4px 6px 4px 10px; font-size: 13px;
+}
+.att-item .nm { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att-item .rm { border: none; background: transparent; cursor: pointer; color: var(--text-dim); font-size: 15px; line-height: 1; padding: 2px 4px; }
+.att-item .rm:hover { color: var(--danger); }
+
+/*
+ * The bottom action row must **always be visible**: the body editor grows with its content (especially rich text), so
+ * once the dialog is stretched past the viewport, `.composer-actions` scrolls off-screen and "Send" is unreachable.
+ * Sticky-to-bottom + an opaque background keeps the buttons pinned to the dialog's bottom while scrolling.
+ * `padding-bottom` takes over the 20px bottom margin previously on `#composer` (see the note there).
+ */
+.composer-actions {
+  display: flex; gap: 8px; justify-content: flex-end; align-items: center;
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: var(--panel);
+  padding-bottom: 20px;
+}
+
+/* ---------- Compose dialog: drag bar / resize handle / floating geometry (desktop) ----------
+ * The desktop dialog still defaults to "centered + auto height" (as before the change); only after the user actually drags /
+ * resizes / maximizes does app.js add .floating to #composer and write inline left/top/width/height.
+ * On mobile these rules are overridden back to full-screen by @media (max-width: 768px).
+ */
+#composer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: move;          /* The whole row is a drag hotspot */
+  touch-action: none;    /* Don't also scroll the dialog during a touch drag */
+  user-select: none;
+}
+.composer-grip { color: var(--text-dim); font-size: 15px; line-height: 1; }
+.composer-head-gap { flex: 1; }
+.composer-tool {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.composer-tool:hover { background: var(--accent-weak); color: var(--accent); }
+
+/* Floating window: position and size are entirely given by inline styles (app.js is the only writer) */
+#composer.floating {
+  position: absolute;
+  max-height: none;
+  overflow-y: auto; /* Fallback scroll when the window is squeezed shorter than its content, so the send button isn't pushed out */
+}
+/*
+ * Let the body absorb the extra height. The point of maximizing is "write more" — without this, after maximizing
+ * the lower half of the screen is blank while the textarea stays stuck at 180px (measured from screenshots).
+ * Shrinking is the reverse: the body stops shrinking at 120px and the rest is handled by the overflow above.
+ */
+#composer.floating .composer-body-wrap { flex: 1 1 auto; min-height: 0; }
+#composer.floating #f-body,
+#composer.floating .rich-editor { flex: 1 1 auto; min-height: 120px; max-height: none; }
+
+.composer-resize {
+  position: fixed;   /* Key: the handle isn't scrolled away when the dialog scrolls internally (absolute positioning would follow the content) */
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 6;
+}
+.composer-resize::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-dim);
+  border-bottom: 2px solid var(--text-dim);
+  border-radius: 0 0 3px 0;
+  opacity: .5;
+}
+.composer-resize:hover::after { opacity: 1; }
+
+/* Disable text selection and hover feel during drag / resize */
+body.composer-dragging { user-select: none; cursor: move; }
+
+/* Mask: dragging the dialog aside means the user wants to compare with the mail behind, so it fades automatically */
+#modal-mask.composer-float { background: rgba(20,24,32,.18); }
+
+/* ---------- Discard confirm (when compose is unsent) ---------- */
+#confirm-mask {
+  position: fixed; inset: 0;
+  background: rgba(20,24,32,.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 60;
+}
+#confirm-box {
+  width: min(400px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.28);
+  padding: 20px 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+#confirm-text { font-size: 14px; color: var(--text); line-height: 1.6; }
+.confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ---------- toast ---------- */
+#toast {
+  position: fixed;
+  bottom: 26px; left: 50%;
+  transform: translateX(-50%);
+  background: #323639;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  /* Above the setup gate (z-index 1000): the domain self-check panel lives inside it and reports success with a toast. */
+  z-index: 1100;
+  box-shadow: 0 4px 16px rgba(0,0,0,.3);
+  max-width: 80vw;
+}
+#toast.error { background: var(--danger); }
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 980px) {
+  #list-pane { width: 42%; min-width: 300px; }
+}
+
+/* ---------- Compose layout fixes ---------- */
+#composer label:not(.att-pick) { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+#composer label.att-pick { display: inline-flex; flex-direction: row; gap: 5px; }
+#composer .composer-row > label:not(.att-pick) { flex: 0 0 auto; }
+#composer .composer-row > label.grow { flex: 1; }
+/* With the sender on its own row it need not fill the whole dialog (a 700px-wide dropdown looks bad on desktop) */
+#composer label.auto-label select { width: auto; min-width: 200px; max-width: 340px; }
+
+/* ---------- Mail merge (shared row for compose/reply) ---------- */
+/* Note: the `#composer label:not(.att-pick)` above set labels to a vertical flex;
+   this overrides it back to a horizontal layout with an equal-specificity but later selector. */
+#composer .merge-row { align-items: center; }
+#composer label.merge-pick {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+#composer label.merge-pick input[type="checkbox"] { margin: 0; cursor: pointer; }
+.merge-hint { color: var(--text-dim); font-size: 12px; }
+.mail-body { font-size: 15px; }
+
+/* ---------- Sender: own row, collapsed to a summary by default ---------- */
+/* The collapsed state is only this row, so it must fully state "which address sends now" — collapsing does not mean hiding information. */
+.sender-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;      /* let a long address ellipsize instead of pushing the "＋ 自定义" button out of the row */
+  flex: 0 1 auto;
+  text-align: left;
+}
+.sender-label { flex: 0 0 auto; color: var(--text-dim); }
+.sender-current { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sender-caret { flex: 0 0 auto; font-size: 11px; }
+/* Only one sender address: nothing to choose, so hide the caret and remove the "clickable" feel */
+.sender-solo .sender-caret { display: none; }
+.sender-solo .sender-toggle { cursor: default; }
+.sender-solo .sender-toggle:hover { text-decoration: none; }
+
+/* "+ custom": add a sender address on the configured domain (session-only until the first send). */
+.sender-add {
+  flex: 0 0 auto;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+
+/* ---------- CC / BCC + recipient suggestions ---------- */
+.link-btn {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-family: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.link-btn:hover { text-decoration: underline; }
+
+/* The dropdown is absolutely positioned inside #composer; left/top/width are computed by JS.
+   The width is the "dialog content width", not the input width — see suggestBoxGeom in app.js. */
+.addr-suggest {
+  position: absolute;
+  z-index: 5;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.14);
+  padding: 4px;
+}
+.addr-suggest-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.addr-suggest-item.active { background: var(--accent-weak); }
+.addr-suggest-item .nm { color: var(--text); font-weight: 600; flex: 0 0 auto; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.addr-suggest-item .em { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.addr-suggest-item mark { background: #fde68a; color: inherit; padding: 0; border-radius: 2px; }
+.addr-suggest-empty { padding: 6px 9px; font-size: 13px; color: var(--text-dim); }
+
+/* ---------- Detail body: loading / failed placeholders ---------- */
+/* The header (subject/from/time) comes from the list row and renders synchronously on click; only the body waits for the detail API. */
+.mail-body-pending { display: flex; align-items: center; justify-content: center; min-height: 180px; }
+.body-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+}
+.body-pending.is-error { color: var(--danger); }
+.body-pending .spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  animation: body-spin 0.7s linear infinite;
+}
+@keyframes body-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .body-pending .spinner { animation: none; border-top-color: var(--border); }
+}
+.env-who .who-name .from-me { font-weight: 600; }
+
+/* =========================================================================
+ * Mobile adaptation
+ *
+ * Breakpoint 768px: ≤768px enters "single column + drawer" mode, covering the whole
+ * phone-portrait range (320–430px) and most phone-landscape cases (the narrow end of 568–926px).
+ *
+ * Division of labor:
+ *   - Layout (drawer, single column, full-screen dialog) relies entirely on the media queries here + two state classes on `#app`:
+ *       `.drawer-open`   drawer expanded
+ *       `.mobile-detail` viewing detail in single-column mode (the list yields)
+ *     These two classes are maintained **solely** by syncLayout() in app.js; never toggle them elsewhere.
+ *   - The desktop never renders mobile-only controls (display:none in the base rules below).
+ * ========================================================================= */
+
+/* Mobile-only controls: never shown on desktop */
+.icon-btn, #topbar-compose, #drawer-mask, #read-back { display: none; }
+
+/* iOS enlarges body text on its own in landscape; disable it for stable layout */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+@media (max-width: 768px) {
+  /* ---------- Top bar: hamburger + search + compose ---------- */
+  #topbar {
+    height: auto;
+    min-height: 54px;
+    padding: 6px 10px;
+    padding-top: calc(6px + env(safe-area-inset-top));
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  /* The domain list drops to its own full-width row on mobile (order: 10), keeping the search box on the first row. */
+  #domain-bar { order: 10; flex: 1 1 100%; max-width: none; }
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .icon-btn:active { background: var(--hover); }
+  #search-box { max-width: none; }
+  /* 16px: on iOS an input with font-size < 16px zooms the whole page on focus */
+  #search-input { padding: 10px 12px; font-size: 16px; }
+  #topbar-compose {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+
+  /* ---------- Sidebar → drawer ---------- */
+  #sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: min(288px, 84vw);
+    min-width: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform .2s ease;
+    box-shadow: 0 0 28px rgba(0,0,0,.2);
+    padding-top: calc(12px + env(safe-area-inset-top));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #app.drawer-open #sidebar { transform: none; }
+  #drawer-mask {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(20,24,32,.42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+  }
+  #app.drawer-open #drawer-mask { opacity: 1; pointer-events: auto; }
+  /* Touch target ≥44px */
+  .folder-item { padding: 13px 16px; font-size: 15px; }
+  #mailbox-select { padding: 10px 12px; font-size: 16px; }
+
+  /* Native dropdown popup list: Android Chrome renders list items at the <option> font size.
+     The closed state was already raised to 16px for readability + touch target; letting the list follow at 16px is clearly
+     too big (native list row height is already larger than in-page text) → shrink only the **list items** back to 14px, leaving the closed state unaffected.
+     ⚠️ iOS's wheel picker is system UI and ignores this rule; there we accept the system default font size. */
+  #mailbox-select option, #composer select option { font-size: 14px; }
+
+  /* ---------- Single column: list ⇄ detail ---------- */
+  #list-pane {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    border-right: none;
+  }
+  /* In single-column layout there are no "two columns" to adjust, so remove the splitter entirely (otherwise a 6px empty slot remains to the right of the list) */
+  #splitter { display: none; }
+  #read-pane { display: none; }
+  #app.mobile-detail #list-pane { display: none; }
+  #app.mobile-detail #read-pane { display: block; }
+
+  /* ---------- Detail top back bar (sticky on #read-pane's scroll container) ---------- */
+  #read-back {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    padding: 8px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  #read-back .btn { flex: 1; min-height: 44px; font-size: 15px; }
+
+  /* ---------- List ---------- */
+  #list-head { padding: 10px 12px 8px; }
+  #list-title { font-size: 17px; }
+  .list-item { padding: 12px; column-gap: 8px; }
+  .li-star .star-btn { width: 44px; height: 44px; font-size: 19px; }
+  #list input[type="checkbox"], #select-all { width: 20px; height: 20px; }
+  #bulk-actions { width: 100%; margin-left: 0; }
+  #bulk-actions .btn { min-height: 40px; }
+  .list-more .btn { min-height: 44px; width: 100%; }
+
+  /* ---------- Detail typography ---------- */
+  .read-message { padding: 12px 12px calc(56px + env(safe-area-inset-bottom)); }
+  .mail-subject { padding: 14px 14px 10px; }
+  .mail-subject h1 { font-size: 18px; }
+  .mail-envelope, .attachments, .rm-thread { padding-left: 14px; padding-right: 14px; }
+  .mail-body-card { padding: 6px 14px 0; }
+  .mail-body { font-size: 15px; }
+  .env-top { flex-wrap: wrap; gap: 10px; }
+  .env-actions { margin-left: 0; width: 100%; gap: 6px; }
+  .env-actions .btn { flex: 1; min-height: 42px; }
+  .env-detail-lines .k { flex: 0 0 56px; }
+  .att-chip { max-width: 100%; }
+  /* Thread rows originally gave the from→to pair 320px and the time 120px fixed columns, which squeezes the subject away on narrow screens */
+  .rm-thread .t-sender { flex: 0 1 auto; max-width: 42%; }
+  .rm-thread .t-time { flex: 0 0 auto; font-size: 10px; }
+
+  /* ---------- Compose dialog: full-screen + internal scroll ---------- */
+  #modal-mask { align-items: stretch; }
+  #composer {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    padding-top: calc(12px + env(safe-area-inset-top));
+    gap: 10px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #composer input[type="text"], #composer select, #composer textarea, .rich-editor { font-size: 16px; }
+  #f-body, .rich-editor { min-height: 160px; }
+  .rich-editor { max-height: none; }
+  .rich-toolbar button { min-height: 38px; padding: 6px 10px; }
+  #composer label.auto-label select { min-width: 0; width: 100%; max-width: none; }
+  .att-item .nm { max-width: 44vw; }
+  /* Send/Cancel pinned to the bottom, so a long body scrolled to the end needs no button hunt */
+  .composer-actions {
+    position: sticky;
+    bottom: 0;
+    padding: 8px 0 4px;
+    background: var(--panel);
+    gap: 8px;
+  }
+  .composer-actions .btn { min-height: 44px; padding: 0 18px; font-size: 15px; }
+
+  /* ---------- Compose dialog: no drag / resize in full-screen ---------- */
+  /* The mobile dialog already fills the screen, so drag and resize are pointless; those two gestures also fight with scrolling. */
+  #composer-head { cursor: default; touch-action: auto; }
+  /* The grip icon is also a drag hint, so hide it on mobile too (leaving it makes people think they can drag) */
+  .composer-grip, .composer-tool, .composer-resize { display: none; }
+
+  /* ---------- Recipient suggestions: little usable height once the soft keyboard is up ---------- */
+  .addr-suggest { max-height: 42vh; }
+  /* Vertical layout: name on one line, email on another. In a horizontal layout on narrow screens the email is squeezed to
+     a few characters by the name, yet "seeing the full email clearly" is the only thing the user must confirm while typing. */
+  .addr-suggest-item { flex-direction: column; align-items: stretch; gap: 2px; padding: 12px 12px; font-size: 16px; }
+  .addr-suggest-empty { padding: 12px; font-size: 16px; }
+  .addr-suggest-item .nm { max-width: 100%; }
+
+  /* ---------- Sender summary row ---------- */
+  /* Once collapsed it is the only visible sender info, and 13px is a bit small on a phone */
+  .sender-toggle { font-size: 15px; }
+
+  /* ---------- toast: avoid the bottom safe area ---------- */
+  #toast {
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 24px);
+    font-size: 14px;
+  }
+}
+
+/* ---------- Inbound alert bar (CF inbound "received but not in inbox") ---------- */
+#inbound-alerts {
+  background: var(--warn-bg);
+  border-bottom: 1px solid #f0d9a0;
+  color: #6b4b00;
+  font-size: 13px;
+  flex: none;
+}
+.ia-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+}
+.ia-head .ia-icon { flex: none; }
+.ia-head .ia-title { font-weight: 600; }
+.ia-head .ia-toggle { margin-left: auto; color: inherit; }
+.ia-list {
+  margin: 0;
+  padding: 0 14px 10px;
+  list-style: none;
+  max-height: 40vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ia-item {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #f0d9a0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ia-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.ia-subject { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ia-subject .ia-empty { color: var(--text-dim); font-weight: 400; }
+.ia-meta { color: var(--text-dim); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ia-error { color: var(--danger); font-size: 12px; word-break: break-word; }
+.ia-actions { flex: none; display: flex; gap: 6px; }
+.ia-actions .btn { padding: 4px 10px; font-size: 12px; }
+.ia-actions .btn[disabled] { opacity: 0.5; cursor: default; }
+
+@media (max-width: 640px) {
+  .ia-item { flex-direction: column; align-items: stretch; }
+  .ia-actions { justify-content: flex-end; }
+}
+
+/* ---------------- Setup wizard / login gate (#gate) ---------------- */
+
+#gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  /* Translucent scrim: the app stays visible behind the dialog (user request). The card itself is opaque. */
+  background: rgba(17, 24, 39, 0.38);
+  backdrop-filter: blur(2px);
+}
+#gate.hidden { display: none; }
+#gate .gate-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 40px rgba(20, 30, 50, 0.14);
+  padding: 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#gate .gate-title { font-size: 20px; font-weight: 700; color: var(--text); }
+#gate .gate-sub { font-size: 13px; color: var(--text-dim); margin-top: -4px; }
+#gate .gate-field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--text-dim); }
+#gate .gate-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--panel-2);
+}
+#gate .gate-field input:focus { outline: 2px solid var(--accent-weak); border-color: var(--accent); }
+#gate .gate-actions { display: flex; justify-content: flex-end; margin-top: 4px; }
+#gate .gate-actions .btn { min-width: 96px; }
+#gate .gate-error { color: var(--danger); font-size: 12.5px; min-height: 16px; }
+#gate .gate-note { font-size: 12px; color: var(--text-dim); border-top: 1px solid var(--border); padding-top: 10px; }
+
+#gate .gate-card.gate-wide { max-width: 460px; }
+#gate .gate-steps { display: flex; flex-direction: column; gap: 6px; }
+/* The self-check lists many rows (Resend status + 4 DNS records per domain) — keep the card inside the viewport. */
+#gate .gate-steps.scroll { max-height: 52vh; overflow-y: auto; padding-right: 4px; }
+#gate .gate-step { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; line-height: 1.5; }
+#gate .gate-step-mark { flex: none; font-weight: 700; }
+#gate .gate-step.ok .gate-step-mark { color: var(--ok); }
+#gate .gate-step.bad .gate-step-mark { color: var(--danger); }
+#gate .gate-step.warn .gate-step-mark { color: var(--warn); }
+#gate .gate-step-name { flex: none; font-weight: 600; color: var(--text); }
+#gate .gate-step-detail { color: var(--text-dim); word-break: break-word; }
+/* Collapsible "edit sending settings" block inside the self-check panel. */
+/* Cloudflare authorisation block: a one-click deep link into the token UI (permissions pre-selected) + the
+   permission list, so it is obvious what is being granted. */
+#gate .cf-auth { gap: 6px; }
+#gate .cf-auth-btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+#gate .cf-perms {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+#gate .cf-perms b { color: var(--text); font-weight: 600; }
+#gate .cf-perms-list { margin: 4px 0 0; padding-left: 18px; }
+#gate .cf-perms-list li { margin: 2px 0; }
+#gate .cf-auth-btn.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+#gate .cf-zone-hint {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+#gate .gate-edit { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+#gate .gate-edit summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text); }
+#gate .gate-edit[open] summary { margin-bottom: 8px; }
+#gate .gate-edit .gate-actions { margin: 2px 0 6px; }
+
+/* ---- Domain self-check panel: spinner + two result tables (发信 / 收信) ---- */
+#gate .gate-card.gate-check { max-width: 560px; }
+#gate .gate-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  padding: 6px 0;
+}
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: dsh-spin 0.8s linear infinite;
+}
+@keyframes dsh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; border-top-color: var(--border); border-left-color: var(--accent); }
+}
+#gate .gate-tables { display: flex; flex-direction: column; gap: 10px; max-height: 52vh; overflow-y: auto; }
+#gate .check-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+#gate .check-table caption {
+  caption-side: top;
+  text-align: left;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 0 0 4px;
+}
+#gate .check-table th,
+#gate .check-table td {
+  border-top: 1px solid var(--border);
+  padding: 5px 6px;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.45;
+}
+#gate .check-table th { font-weight: 600; color: var(--text-dim); font-size: 11.5px; }
+#gate .check-table .ct-name { white-space: nowrap; font-weight: 600; color: var(--text); }
+#gate .check-table .ct-state { width: 1%; text-align: center; font-weight: 700; }
+#gate .check-table .ct-detail { color: var(--text-dim); word-break: break-word; }
+#gate .check-table tr.ok .ct-state { color: var(--ok); }
+#gate .check-table tr.bad .ct-state { color: var(--danger); }
+#gate .check-table tr.warn .ct-state { color: var(--warn); }

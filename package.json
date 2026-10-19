@@ -1,0 +1,37 @@
+{
+  "name": "resend-mail-api4",
+  "version": "1.0.0",
+  "description": "Resend 邮件收件箱：入站 Webhook + D1 + R2 附件 + 简化 Gmail 风格网页",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "wrangler dev -c wrangler.dev.toml",
+    "deploy": "node scripts/predeploy.js && wrangler deploy",
+    "predeploy": "node scripts/predeploy.js",
+    "typecheck": "tsc --noEmit",
+    "schema:sync": "node scripts/sync-schema.js",
+    "db:migrate": "wrangler d1 execute resend-webhooks-db -c wrangler.local.toml --file=./schema.sql --remote",
+    "db:migrate:local": "wrangler d1 execute resend-mail-local -c wrangler.dev.toml --file=./schema.sql --local",
+    "db:migrate:up": "wrangler d1 execute resend-webhooks-db -c wrangler.local.toml --file=./migrations/001_thread_mailbox.sql --remote",
+    "db:migrate:up:local": "wrangler d1 execute resend-mail-local -c wrangler.dev.toml --file=./migrations/001_thread_mailbox.sql --local"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "resend",
+    "email",
+    "d1",
+    "r2"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260907.1",
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.129.0"
+  },
+  "dependencies": {
+    "postal-mime": "^2.7.6",
+    "resend": "^6.26.0"
+  }
+}

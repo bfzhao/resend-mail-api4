@@ -1,0 +1,71 @@
+# Template config for the "Deploy to Cloudflare button".
+#
+# The button clones this repo into your GitHub account, then builds it with `npm run deploy`. That command first runs
+# scripts/predeploy.js, which makes the deploy safe: the setup page lets you **pick an existing D1 / R2 or create a new
+# one** (the "+ Create new" entry), and this file is where that choice is written back (database name + id). The guard
+# refuses to bind a resource that another worker already uses, so a second deployment can never write into the first
+# one's mail — and it fills in sensible defaults when the page left the placeholder behind.
+#
+# For your own production deployment use wrangler.local.toml (see the README "self-hosting" section); for local
+# development use wrangler.dev.toml (`npm run dev`). Do not put real ids in this file.
+name = "resend-mail-api4"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# ⚠️ These must stay in the **root** table (above the first [section]): a TOML key belongs to the table header that
+# precedes it, so placing them after [assets] would make wrangler report
+#   "Unexpected fields found in assets field: workers_dev, preview_urls".
+# Declared explicitly so a fresh deploy does not emit the "workers_dev / preview_urls is not in your Wrangler file" warnings.
+workers_dev = true
+preview_urls = false
+
+# D1: `database_id` is what actually binds (the name is a label). The Deploy Button fills both in from the setup page.
+# Left as the placeholder, the guard keeps the database this worker is already bound to, or creates "<project>-db".
+# The schema for a brand-new empty database is created automatically on the Worker's first request (no migrations needed).
+[[d1_databases]]
+binding = "DB"
+database_name = "resend-webhooks-db3"
+database_id = "5de24dde-c4f5-4df1-9895-7a1b018d728d"
+
+# R2 has no id: the bucket name is the identity, so renaming it means a different (empty) bucket.
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "resend-mail-attachments3"
+
+# SPA static directory: all requests hit the Worker first (for auth) and fall back to static assets when they don't match /api, /webhook, or /health
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "none"
+
+[vars]
+# ⚠️ Intentionally no SEND_FROM_ADDRESS / SEND_FROM_NAME / WORKER_NAME: the in-app wizard writes the real domain, sender
+# and script name into your own D1 on first run (the database wins over env). A placeholder address here used to leak
+# "inbox@example.com" into the database as the default sender.
+#
+# Subrequest budget for the merged-send "per-recipient loop". The free plan caps a single request at 50, so keep a margin of 5.
+MERGE_SUBREQ_BUDGET = "45"
+
+# Inbound parsing runs **inline** by default (no Queue declared). Cloudflare allows exactly ONE consumer per queue, so a
+# queue in this template made a second deployment in the same account fail with
+#   "Queue 'resend-mail-inbound' already has a consumer [code: 11004]"
+# and both workers pointed at the same queue. For the asynchronous pipeline (recommended for high inbound volume) create a
+# queue that is unique in your account and uncomment:
+#
+# [[queues.producers]]
+# binding = "INBOUND_QUEUE"
+# queue = "resend-mail-inbound"
+#
+# [[queues.consumers]]
+# queue = "resend-mail-inbound"
+# max_batch_size = 1
+# max_retries = 5
+
+# Recovery cron: re-parses inbound messages that are in R2 but not fully parsed (never-lose self-healing). Without a queue
+# this cron parses the pending rows itself, so mail is never stranded.
+[triggers]
+crons = ["*/15 * * * *"]
+
+[dev]
+port = 8787

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <!-- viewport-fit=cover: lets the page fill notch/rounded-corner screens, reserving the safe area via env(safe-area-inset-*) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="referrer" content="no-referrer" />
+  <title>收件箱</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <button id="compose-btn" class="btn btn-primary compose-btn" type="button">写信</button>
+      <div id="mailbox-wrap" class="hidden">
+        <select id="mailbox-select" title="切换收件地址"></select>
+      </div>
+      <nav id="folder-nav"></nav>
+      <!-- Backend basics: CF storage usage / inbound queue + Resend send quota (estimated); changes color near the limit or on errors/backlog.
+           Hidden by default; filled by loadBackendStatus() in app.js. -->
+      <div id="backend-status" class="hidden"></div>
+      <div id="sidebar-status" hidden>未连接 API</div>
+    </aside>
+
+    <!-- Mobile drawer mask: shown by CSS only while #app.drawer-open; clicking it closes the drawer -->
+    <div id="drawer-mask"></div>
+
+    <div id="workspace">
+      <!-- Inbound alert: mail that CF inbound "received but didn't parse into the inbox" (the raw message is still downloadable from R2).
+           Hidden by default; filled by loadInboundAlerts() in app.js. -->
+      <div id="inbound-alerts" class="hidden" role="status" aria-live="polite"></div>
+      <header id="topbar">
+        <!-- Mobile: open the folder drawer (hidden by CSS on desktop) -->
+        <button id="drawer-btn" class="icon-btn" type="button" aria-label="打开文件夹" aria-controls="sidebar">☰</button>
+        <div id="search-box">
+          <input id="search-input" type="search" placeholder="搜索邮件…" autocomplete="off" />
+        </div>
+        <!-- Domain filter (multi-domain, multi-select): filled by renderDomainBar() in app.js; shown to the right of the
+             search box. Ticking one or more domains narrows the inbox/sidebar/sender dropdown; none ticked = all domains. -->
+        <div id="domain-bar" class="hidden" role="group" aria-label="域名筛选（可多选）"></div>
+        <!-- Add-domain entry: opens the wizard to configure extra domains later. -->
+        <button id="add-domain-btn" class="add-domain-btn" type="button" title="添加域名">＋ 域名</button>
+        <!-- Language switch (中文 / English). The label always shows the language you would switch **to**; the choice is
+             remembered in localStorage and applied by /i18n.js (data-no-i18n keeps the label itself untranslated). -->
+        <button id="lang-btn" class="lang-btn" type="button" data-no-i18n aria-label="Switch to English">EN</button>
+        <!-- Mobile: once the sidebar moves into the drawer, the top bar needs a directly clickable compose entry (hidden by CSS on desktop) -->
+        <button id="topbar-compose" class="btn btn-primary" type="button">写信</button>
+        <div id="topbar-actions" class="hidden"></div>
+      </header>
+
+      <div id="main-split">
+        <!-- Left: message list -->
+        <section id="list-pane">
+          <div id="list-head">
+            <div id="list-title"></div>
+            <label id="select-all-wrap" title="全选当前页">
+              <input type="checkbox" id="select-all" />
+              <span>全选本页</span>
+            </label>
+            <div id="list-bulk" class="hidden">
+              <span id="selected-count"></span>
+              <span id="bulk-actions"></span>
+            </div>
+          </div>
+          <div id="list" class="list"></div>
+          <div id="list-empty" class="empty hidden">这里还没有邮件</div>
+          <div id="list-more" class="list-more hidden"></div>
+        </section>
+
+        <!-- Split divider: draggable on desktop to resize the list width (hidden by CSS in the mobile single-column layout) -->
+        <div
+          id="splitter"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="拖动调整邮件列表宽度"
+          tabindex="0"
+        ></div>
+
+        <!-- Right: message detail -->
+        <section id="read-pane">
+          <!-- Mobile: return from detail to list in the single-column layout (hidden by CSS on desktop) -->
+          <div id="read-back">
+            <button id="read-back-btn" class="btn" type="button">← 返回列表</button>
+          </div>
+          <div id="read-placeholder" class="read-placeholder">
+            <div class="ph-title">选择一封邮件以阅读</div>
+            <div class="ph-hint">从左侧列表中选择，或用 ↑ ↓ 键浏览</div>
+          </div>
+          <article id="read-message" class="read-message hidden"></article>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-mask" class="hidden">
+    <div id="composer" role="dialog" aria-label="写信">
+      <!-- Title bar doubling as a drag handle: hold here to move the dialog freely on desktop (full-screen on mobile, dragging disabled) -->
+      <div id="composer-head">
+        <span class="composer-grip" aria-hidden="true">⠿</span>
+        <div id="composer-title">写信</div>
+        <span class="composer-head-gap"></span>
+        <button id="composer-fit" class="composer-tool" type="button" title="恢复默认大小与位置" aria-label="恢复默认大小与位置">⟲</button>
+        <button id="composer-max" class="composer-tool" type="button" title="最大化" aria-label="最大化">⤢</button>
+      </div>
+      <div class="composer-row">
+        <label class="grow">收件人 <input id="f-to" type="text" placeholder="name@example.com，多个用逗号分隔" autocomplete="off" /></label>
+      </div>
+      <!-- Sender on its own row: sharing a row with the recipient left both fields half-width on narrow screens (the narrower the recipient input,
+           the harder the suggestion dropdown is to read). Collapsed it shows a one-line summary of "which address sends now"; click to expand the dropdown. -->
+      <div class="composer-row sender-row hidden" id="f-sender-row">
+        <button id="f-sender-toggle" class="link-btn sender-toggle" type="button" aria-expanded="false" aria-controls="f-mailbox-label">
+          <span class="sender-label">发件人</span><span id="f-sender-current" class="sender-current"></span><span id="f-sender-caret" class="sender-caret" aria-hidden="true">▾</span>
+        </button>
+        <!-- Only one address to pick from: the dropdown row (with its own ＋ 自定义) never opens, so the same entry point
+             lives here. Any local part on a configured domain is a valid sender. -->
+        <button id="f-sender-custom" class="link-btn sender-add hidden" type="button" title="设置任意发件地址（该域下的任意本地部分）" aria-label="设置任意发件地址">＋ 自定义</button>
+      </div>
+      <div class="composer-row sender-row hidden" id="f-mailbox-row">
+        <label id="f-mailbox-label" class="grow auto-label">发件人
+          <select id="f-mailbox"></select>
+        </label>
+        <button id="f-sender-add" class="link-btn sender-add" type="button" title="添加自定义发件人（需为同域名地址）" aria-label="添加自定义发件人">＋ 自定义</button>
+      </div>
+      <div class="composer-row cc-toggle-row">
+        <button id="f-cc-toggle" class="link-btn" type="button">＋ 抄送 / 密送</button>
+      </div>
+      <div class="composer-row cc-field hidden" id="f-cc-row">
+        <label class="grow">抄送 <input id="f-cc" type="text" placeholder="抄送，多个用逗号分隔" autocomplete="off" /></label>
+      </div>
+      <div class="composer-row cc-field hidden" id="f-bcc-row">
+        <label class="grow">密送 <input id="f-bcc" type="text" placeholder="密送（其他收件人看不到），多个用逗号分隔" autocomplete="off" /></label>
+      </div>
+      <div class="composer-row merge-row">
+        <label class="merge-pick" title="勾选后，将对每个收件人分别单独发送一封邮件（内容与主题相同）">
+          <input type="checkbox" id="f-merge" />
+          <span>合并发送</span>
+        </label>
+        <span id="merge-hint" class="merge-hint"></span>
+      </div>
+      <label>主题 <input id="f-subject" type="text" /></label>
+
+      <div class="composer-body-wrap">
+        <div id="rich-toolbar" class="rich-toolbar hidden">
+          <button type="button" data-cmd="bold" title="加粗"><b>B</b></button>
+          <button type="button" data-cmd="italic" title="斜体"><i>I</i></button>
+          <button type="button" data-cmd="underline" title="下划线"><u>U</u></button>
+          <span class="sep"></span>
+          <button type="button" data-cmd="insertUnorderedList" title="无序列表">• 列表</button>
+          <button type="button" data-cmd="insertOrderedList" title="有序列表">1. 列表</button>
+          <button type="button" data-cmd="createLink" title="插入链接">链接</button>
+          <span class="sep"></span>
+          <button type="button" data-cmd="removeFormat" title="清除格式">清除格式</button>
+        </div>
+        <textarea id="f-body" rows="12" placeholder="在此输入邮件正文…"></textarea>
+        <div id="f-body-rich" class="rich-editor hidden" contenteditable="true" data-placeholder="在此输入邮件正文…"></div>
+      </div>
+
+      <div class="composer-row">
+        <button id="f-mode" class="btn" type="button">切换 HTML 富文本</button>
+        <button id="f-quote" class="btn hidden" type="button">引用原文</button>
+        <span class="grow"></span>
+        <span id="f-forward-note" class="merge-hint"></span>
+        <label class="att-pick btn" title="添加附件">＋ 附件
+          <input id="f-attachments" type="file" multiple hidden />
+        </label>
+      </div>
+      <div id="f-attach-list" class="attach-list"></div>
+
+      <div class="composer-actions">
+        <button id="composer-cancel" class="btn" type="button">取消</button>
+        <button id="composer-send" class="btn btn-primary" type="button">发送</button>
+      </div>
+      <!-- Recipient suggestion dropdown: positioned by app.js below the recipient field currently being typed in -->
+      <div id="addr-suggest" class="addr-suggest hidden" role="listbox"></div>
+      <!-- Bottom-right resize handle: shown only when the dialog is floating, positioned by app.js (fixed, doesn't scroll with content) -->
+      <div id="composer-resize" class="composer-resize hidden" title="拖动调整大小" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <div id="confirm-mask" class="hidden">
+    <div id="confirm-box" role="dialog" aria-modal="true" aria-labelledby="confirm-text">
+      <div id="confirm-text"></div>
+      <div class="confirm-actions">
+        <button id="confirm-cancel" class="btn btn-primary" type="button">继续编辑</button>
+        <button id="confirm-ok" class="btn btn-danger" type="button">放弃</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attachment preview overlay: opens by clicking the attachment name; images/PDF/video/audio/plain text are embedded, others fall back to download -->
+  <div id="att-preview" class="hidden" role="dialog" aria-modal="true" aria-label="附件预览">
+    <div class="att-preview-box">
+      <div class="att-preview-head">
+        <span id="att-preview-name" class="nm"></span>
+        <span class="gap"></span>
+        <a id="att-preview-dl" class="btn att-preview-dl" download>下载</a>
+        <button id="att-preview-close" class="btn" type="button">关闭</button>
+      </div>
+      <div id="att-preview-body" class="att-preview-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+
+  <script src="/i18n.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

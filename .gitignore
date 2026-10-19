@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.wrangler/
+.devlogs/
+.dev.vars
+wrangler.local.toml
+*.log
+.workbuddy-ai/

@@ -1,0 +1,12 @@
+-- 012 · Per-domain Resend API key
+--
+-- Background: two domains can live in **different Resend accounts** (each with its own key). A single global key then
+-- cannot serve both — sending from the other domain fails with "The <domain> domain is not verified", and the self-check
+-- reports that the key cannot see the domain.
+--
+-- Resolution order for every send / domain query (see resendKeyFor in src/send.ts):
+--   domains.resend_api_key  →  app_config.resend_api_key  →  env RESEND_API_KEY
+--
+-- Existing rows keep NULL (they fall back to the global key), except domains that only ever came from env vars: those
+-- are backfilled from the env key by the Worker itself on the next request (see adoptEnvDomains in src/setup.ts).
+ALTER TABLE domains ADD COLUMN resend_api_key TEXT;
